@@ -7,6 +7,7 @@ class AStar():
         self.goal_map = [[1, 2, 3], [4, 5, 6], [7, 8, 0]]
         self.goal_positions = {tile: (r, c) for r, row in enumerate(self.goal_map) for c, tile in enumerate(row) if tile != 0}
         self.h = heuristic
+        self.r = Result()
 
     def heuristic(self, node):
         return self.h(node)
@@ -22,6 +23,7 @@ class AStar():
         tie_breaker = itertools.count()
         
         heapq.heappush(frontier, (f0, next(tie_breaker), s0))
+        self.r.nodes_generated += 1
         
         best_g = {s0: 0}
         
@@ -29,7 +31,13 @@ class AStar():
             f, _, n = heapq.heappop(frontier)
             
             if goal_test(n):
-                return n
+                self.r.prev_actions = n.prev_actions
+                self.r.solution_cost = n.g
+                self.r.solution_depth = len(n.prev_actions)
+                self.r.type = "WIN"
+                return self.r
+
+            self.r.nodes_expanded += 1
             
             for a in n.actions():
                 s_ = n.transition(a)
@@ -39,9 +47,12 @@ class AStar():
                     best_g[s_] = g_
                     s_.g = g_
                     f_ = g_ + self.heuristic(s_)
+                    self.r.nodes_generated += 1
                     heapq.heappush(frontier, (f_, next(tie_breaker), s_))
-        
-        return None
+                    if len(frontier) > self.r.maximum_frontier_size:
+                        self.r.maximum_frontier_size = len(frontier)
+        self.r.type = "FAIL"
+        return self.r
     
 def main():
     u = AStar(h2)
